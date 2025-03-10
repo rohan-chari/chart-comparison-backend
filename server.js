@@ -7,20 +7,14 @@ const PORT = process.env.PORT || 3000;
 const cors = require("cors");
 
 
+app.use(express.json());
+app.use(cors());
+
 const server = http.createServer(app);
 
 app.use("/stocks", stockRoutes);
 
 
-// Middleware to parse JSON requests
-app.use(express.json());
-app.use(cors());
-// Default route
-app.get('/', (req, res) => {
-  res.send('Hello, Node.js!');
-});
-
-// Start the server
 server.listen(PORT, () => {
   console.log(`Server is running on http://localhost:${PORT}`);
 });

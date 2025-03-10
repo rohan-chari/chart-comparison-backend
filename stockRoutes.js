@@ -1,8 +1,7 @@
 const express = require("express");
 const router = express.Router();
-const db = require("./connectToDb");
+const connectToMongo = require("./connectToDb");
 
-// Route to get stock details by ticker or company name
 router.get("/", async (req, res) => {
   const { stockInfo } = req.query;
 
@@ -11,23 +10,70 @@ router.get("/", async (req, res) => {
   }
 
   try {
-    // Use wildcards for partial matches
-    const searchQuery = `%${stockInfo}%`;
+    const db = await connectToMongo();
+    const stocksCollection = db.collection("stocks");
 
-    const [results] = await db.query(
-      "SELECT ticker, company_name, exchange, sector FROM stocks WHERE ticker = ? OR company_name LIKE ?",
-      [stockInfo.toUpperCase(), searchQuery]
-    );
+    // Perform case-insensitive search for ticker OR company name (partial match)
+    const results = await stocksCollection
+      .find({
+        $or: [
+          { ticker: stockInfo.toUpperCase() }, // Exact match for ticker
+          { company_name: { $regex: stockInfo, $options: "i" } } // Partial match for company name
+        ]
+      })
+      .project({ _id: 0, ticker: 1, company_name: 1, exchange: 1, sector: 1 }) // Exclude _id field
+      .toArray();
 
     if (results.length === 0) {
       return res.status(404).json({ error: "Stock not found" });
     }
 
-    res.json(results); // Return all matching results
+    res.json(results);
   } catch (err) {
     console.error("Database query error:", err);
     res.status(500).json({ error: "Internal Server Error" });
   }
 });
+
+
+// Route to get historical stock data for a specific ticker
+router.get("/historical/:ticker", async (req, res) => {
+  const { ticker } = req.params;
+
+  if (!ticker) {
+    return res.status(400).json({ error: "Ticker is required" });
+  }
+
+  try {
+    const db = await connectToMongo();
+    const historicalCollection = db.collection("stockHistoricalData");
+
+    // Find historical data for the given ticker
+    const stockHistory = await historicalCollection.findOne(
+      { ticker: ticker.toUpperCase() },
+      {
+        projection: {
+          _id: 0,
+          ticker: 1,
+          "historicalData.date": 1,
+          "historicalData.open": 1,
+          "historicalData.close": 1
+        } 
+      }
+    );
+    
+
+    if (!stockHistory) {
+      return res.status(404).json({ error: "Historical data not found" });
+    }
+
+    res.json(stockHistory);
+  } catch (err) {
+    console.error("Database query error:", err);
+    res.status(500).json({ error: "Internal Server Error" });
+  }
+});
+
+
 
 module.exports = router;

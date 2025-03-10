@@ -1,15 +1,18 @@
 require('dotenv').config();
 const axios = require('axios');
-const db = require('./connectToDb');
+const connectToMongo = require('./connectToDb');
 
 async function populateStocksInDb() {
+    const db = await connectToMongo();
+    const stocksCollection = db.collection("stocks"); // MongoDB collection for stocks
+
     try {
         console.log("Fetching all stocks from Finnhub...");
 
         // Fetch stock symbols from Finnhub (Example: US Market)
         const response = await axios.get(`https://finnhub.io/api/v1/stock/symbol`, {
             params: {
-                exchange: 'US', // Change to "US", "NASDAQ", "NYSE", etc.
+                exchange: 'US', // Change as needed
                 token: process.env.FINNHUB_API_KEY
             }
         });
@@ -23,14 +26,16 @@ async function populateStocksInDb() {
             if (stock_type !== "Common Stock") continue;
 
             // Check if stock already exists
-            const [existing] = await db.query("SELECT 1 FROM stocks WHERE ticker = ?", [ticker]);
+            const existingStock = await stocksCollection.findOne({ ticker });
 
-            if (existing.length === 0) {
-                // Insert stock into database
-                await db.query(
-                    "INSERT INTO stocks (ticker, company_name, exchange) VALUES (?, ?, ?)",
-                    [ticker, company_name, "US"]
-                );
+            if (!existingStock) {
+                // Insert stock into MongoDB
+                await stocksCollection.insertOne({
+                    ticker,
+                    company_name,
+                    exchange: "US",
+                    created_at: new Date()
+                });
                 console.log(`Added stock: ${ticker} - ${company_name}`);
             } else {
                 console.log(`Stock ${ticker} already exists.`);
