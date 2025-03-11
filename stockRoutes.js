@@ -37,8 +37,8 @@ router.get("/", async (req, res) => {
 
 
 // Route to get historical stock data for a specific ticker
-router.get("/historical/:ticker", async (req, res) => {
-  const { ticker } = req.params;
+router.post("/historical/:ticker", async (req, res) => {
+  const { comparisonStocks, timeframeStartDate, timeframeEndDate  } = req.params;W
 
   if (!ticker) {
     return res.status(400).json({ error: "Ticker is required" });
