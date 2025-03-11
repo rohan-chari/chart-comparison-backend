@@ -4,7 +4,7 @@ const { MongoClient } = require("mongodb");
 
 const API_KEY = process.env.ALPHAVANTAGE_API_KEY;
 const MONGODB_URI = process.env.MONGODB_URI;
-const TICKER = "SPY"; // Fetching historical data for SPY
+const TICKER = "QQQ"; // Fetching historical data for SPY
 
 async function fetchHistoricalData() {
     try {

@@ -5,7 +5,7 @@ const connectToMongo = require("./connectToDb");
 // Route to get historical stock data for a specific ticker
 router.post("/historical", async (req, res) => {
   const { comparisonStocks, timeframeStartDate, timeframeEndDate  } = req.body;
-    let stocks = [];
+    let stocks = comparisonStocks;
     let [startMonth,startDay,startYear] = timeframeStartDate.split("/")
     let [endMonth,endDay,endYear] = timeframeEndDate.split("/")
 
@@ -13,24 +13,16 @@ router.post("/historical", async (req, res) => {
     const chartEndDate = new Date(endYear, endMonth - 1, endDay);
 
 
-  for (const [ticker, isSelected] of Object.entries(comparisonStocks)) {
-    if(isSelected){
-        stocks.push(ticker);
-    }
-  }
-  
-
   try {
     const db = await connectToMongo();
     const historicalCollection = db.collection("stockHistoricalData");
     let stockHistoricalData = [];
-    console.log("chartStartDate Type:", typeof chartStartDate);
 
     // Find historical data for the given ticker
     for(const ticker of stocks){
         const stockHistory = await historicalCollection.aggregate([
             {
-                $match: { ticker: ticker.toUpperCase() }
+                $match: { ticker: ticker.ticker.toUpperCase() }
             },
             {
                 $project: {
