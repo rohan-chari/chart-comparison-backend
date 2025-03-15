@@ -89,10 +89,6 @@ router.post("/historical", async (req, res) => {
       }
     ]).toArray();
 
-    if (stockHistory.length < 1) {
-      return res.status(404).json({ error: "Historical data not found" });
-    }
-
     res.json(stockHistory);
   } catch (err) {
     console.error("Database query error:", err);
