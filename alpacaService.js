@@ -1,10 +1,15 @@
 require('dotenv').config();
-const fetch = require('node-fetch'); 
+const fetch = require('node-fetch');
+const connectToMongo = require("./connectToDb");
 
-async function fetchHistoricalData(symbol) {
+
+async function fetchHistoricalData(symbol,start,end) {
     try {
         const encodedSymbol = encodeURIComponent(symbol); 
-        const url = `https://data.alpaca.markets/v2/stocks/bars?symbols=${encodedSymbol}&timeframe=1Day&start=2000-01-01T00%3A00%3A00Z&limit=10000&adjustment=raw&feed=sip&sort=desc`;
+        start = new Date(start).toISOString()
+        end = new Date(end).toISOString()
+        console.log(encodedSymbol)
+        const url = `https://data.alpaca.markets/v2/stocks/bars?symbols=${encodedSymbol}&timeframe=1Day&start=${start}&end=${end}&limit=10000&adjustment=raw&feed=sip&sort=desc`;
 
         const options = {
             method: 'GET',
@@ -22,6 +27,7 @@ async function fetchHistoricalData(symbol) {
         }
 
         const json = await response.json();
+        await storeStockData(json);
         return json;
     } catch (error) {
         console.error("Error fetching historical data:", error);
@@ -29,7 +35,60 @@ async function fetchHistoricalData(symbol) {
     }
 }
 
-(async () => {
-    const data = await fetchHistoricalData('AAPL');
-    console.log(JSON.stringify(data, null, 2)); 
-})();
+async function checkWhichStocksToFetch(tickers) {
+    try {
+        const db = await connectToMongo();
+        const stockHistoryCollection = db.collection("stockHistoricalData");
+
+        const existingTickers = await stockHistoryCollection
+            .find({ ticker: { $in: tickers } })
+            .project({ ticker: 1, _id: 0 }) 
+            .toArray();
+
+        const existingTickerSet = new Set(existingTickers.map(doc => doc.ticker));
+
+        const tickersToFetch = tickers.filter(ticker => !existingTickerSet.has(ticker));
+
+        return tickersToFetch;
+    } catch (err) {
+        console.error("Error checking which stocks to fetch:", err);
+        return [];
+    }
+}
+
+async function storeStockData(json) {
+    const db = await connectToMongo();
+    const collection = db.collection("stockHistoricalData");
+
+    try {
+        for (const ticker in json.bars) {
+            const historicalData = json.bars[ticker].map(bar => ({
+                date: bar.t,   // Timestamp
+                open: bar.o,   // Open price
+                high: bar.h,   // High price
+                low: bar.l,    // Low price
+                close: bar.c   // Close price
+            }));
+
+            await collection.updateOne(
+                { ticker: ticker },
+                { $set: { ticker: ticker, historicalData: historicalData } },
+                { upsert: true }
+            );
+
+            console.log(`Stored historical data for ${ticker}`);
+        }
+    } catch (error) {
+        console.error("Error storing stock data in MongoDB:", error.message);
+    } finally {
+        await db.client.close(); // Close connection
+    }
+}
+
+
+
+
+module.exports = {
+    fetchHistoricalData,
+    checkWhichStocksToFetch
+};

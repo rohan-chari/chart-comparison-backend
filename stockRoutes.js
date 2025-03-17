@@ -1,6 +1,7 @@
 const express = require("express");
 const router = express.Router();
 const connectToMongo = require("./connectToDb");
+const { checkWhichStocksToFetch, fetchHistoricalData } = require("./alpacaService");
 
 router.get("/", async (req, res) => {
   const { stockInfo } = req.query;
@@ -37,37 +38,21 @@ router.get("/", async (req, res) => {
 
 
 // Route to get historical stock data for a specific ticker
-router.post("/historical/:ticker", async (req, res) => {
-  const { comparisonStocks, timeframeStartDate, timeframeEndDate  } = req.params;W
+router.get("/historical", async (req, res) => {
+  const { tickers, start,end  } = req.query;
 
-  if (!ticker) {
+  if (!tickers) {
     return res.status(400).json({ error: "Ticker is required" });
   }
 
   try {
-    const db = await connectToMongo();
-    const historicalCollection = db.collection("stockHistoricalData");
+    const tickerList = tickers.split(",")
+    const tickersToFetch = await checkWhichStocksToFetch(tickerList)
+    const data = await fetchHistoricalData(tickersToFetch,start,end)
 
-    // Find historical data for the given ticker
-    const stockHistory = await historicalCollection.findOne(
-      { ticker: ticker.toUpperCase() },
-      {
-        projection: {
-          _id: 0,
-          ticker: 1,
-          "historicalData.date": 1,
-          "historicalData.open": 1,
-          "historicalData.close": 1
-        } 
-      }
-    );
-    
 
-    if (!stockHistory) {
-      return res.status(404).json({ error: "Historical data not found" });
-    }
 
-    res.json(stockHistory);
+    res.json({meow: 'asl;kdhjasdlkahs'});
   } catch (err) {
     console.error("Database query error:", err);
     res.status(500).json({ error: "Internal Server Error" });
