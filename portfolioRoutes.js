@@ -62,7 +62,6 @@ router.post("/calculation", async (req, res) => {
       if (startPrice === null || endPrice === null) {
         startPrice = endPrice = await getStockPrice(stock.ticker);
       }
-
       initialPortfolioValue += stock.quantity * startPrice;
       finalPortfolioValue += stock.quantity * endPrice;
 

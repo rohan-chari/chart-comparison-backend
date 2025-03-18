@@ -1,14 +1,16 @@
 require('dotenv').config();
 const connectToMongo = require("./connectToDb");
 
-
-async function fetchHistoricalData(symbol,start,end) {
+async function fetchHistoricalData(symbol) {
     try {
+        if(!symbol || symbol.length == 0 ){
+            console.log("No need to fetch dates.")
+            return;
+        }
         const encodedSymbol = encodeURIComponent(symbol); 
-        start = new Date(start).toISOString()
-        end = new Date(end).toISOString()
-        console.log(encodedSymbol)
-        const url = `https://data.alpaca.markets/v2/stocks/bars?symbols=${encodedSymbol}&timeframe=1Day&start=${start}&end=${end}&limit=10000&adjustment=raw&feed=sip&sort=desc`;
+        start = new Date('01/01/2000')
+        start.setUTCHours(0,0,0,0)
+        const url = `https://data.alpaca.markets/v2/stocks/bars?symbols=${encodedSymbol}&timeframe=1Day&start=${start.toISOString()}&limit=10000&adjustment=raw&feed=sip&sort=desc`;
 
         const options = {
             method: 'GET',
@@ -39,14 +41,16 @@ async function checkWhichStocksToFetch(tickers) {
         const db = await connectToMongo();
         const stockHistoryCollection = db.collection("stockHistoricalData");
 
-        const existingTickers = await stockHistoryCollection
-            .find({ ticker: { $in: tickers } })
-            .project({ ticker: 1, _id: 0 }) 
-            .toArray();
+        const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000);
+        const tickersToFetch = [];
 
-        const existingTickerSet = new Set(existingTickers.map(doc => doc.ticker));
+        for (const ticker of tickers) {
+            const stock = await stockHistoryCollection.findOne({ ticker });
 
-        const tickersToFetch = tickers.filter(ticker => !existingTickerSet.has(ticker));
+            if (!stock || !stock.updatedDate || new Date(stock.updatedDate) < oneHourAgo) {
+                tickersToFetch.push(ticker);
+            }
+        }
 
         return tickersToFetch;
     } catch (err) {
@@ -58,11 +62,10 @@ async function checkWhichStocksToFetch(tickers) {
 async function storeStockData(json) {
     const db = await connectToMongo();
     const collection = db.collection("stockHistoricalData");
-
     try {
         for (const ticker in json.bars) {
             const historicalData = json.bars[ticker].map(bar => ({
-                date: new Date(bar.t),   // Timestamp
+                date: new Date(new Date(bar.t).setUTCHours(0, 0, 0, 0)),
                 open: bar.o,   // Open price
                 high: bar.h,   // High price
                 low: bar.l,    // Low price
@@ -71,9 +74,17 @@ async function storeStockData(json) {
 
             await collection.updateOne(
                 { ticker: ticker },
-                { $set: { ticker: ticker, historicalData: historicalData } },
+                { 
+                    $set: { ticker: ticker, updatedDate: new Date() },
+                    $addToSet: { 
+                        historicalData: { 
+                            $each: historicalData 
+                        } 
+                    } 
+                },
                 { upsert: true }
             );
+            
 
             console.log(`Stored historical data for ${ticker}`);
         }

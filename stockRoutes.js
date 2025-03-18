@@ -48,7 +48,7 @@ router.get("/historical", async (req, res) => {
   try {
     const tickerList = tickers.split(",")
     const tickersToFetch = await checkWhichStocksToFetch(tickerList)
-    const data = await fetchHistoricalData(tickersToFetch,start,end)
+    const data = await fetchHistoricalData(tickersToFetch)
 
 
 
