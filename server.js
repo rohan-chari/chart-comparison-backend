@@ -3,6 +3,9 @@ const express = require('express');
 const stockRoutes = require("./stockRoutes");
 const chartRoutes = require("./chartRoutes");
 const portfolioRoutes = require("./portfolioRoutes");
+const authRoutes = require("./authRoutes")
+const admin = require("./firebase"); 
+
 
 const http = require('http');
 const app = express();
@@ -18,6 +21,7 @@ const server = http.createServer(app);
 app.use("/stocks", stockRoutes);
 app.use("/chart", chartRoutes);
 app.use("/portfolio", portfolioRoutes);
+app.use("/auth",authRoutes)
 
 
 
