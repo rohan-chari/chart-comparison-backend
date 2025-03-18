@@ -62,7 +62,7 @@ async function storeStockData(json) {
     try {
         for (const ticker in json.bars) {
             const historicalData = json.bars[ticker].map(bar => ({
-                date: bar.t,   // Timestamp
+                date: new Date(bar.t),   // Timestamp
                 open: bar.o,   // Open price
                 high: bar.h,   // High price
                 low: bar.l,    // Low price
