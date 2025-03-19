@@ -13,6 +13,10 @@ router.post("/register", verifyToken, async (req, res) => {
         const userCollection = db.collection("users"); 
 
         const { displayName, uid, email, emailVerified, providerData, createdAt, lastLoginAt } = req.body.user;
+        if(!displayName || !req.body.user){
+            return res.status(400).json({ error: "Missing email or display name" });
+
+        }
         let user = await userCollection.findOne({ _id: uid });
         if (!user) {
             user = {
