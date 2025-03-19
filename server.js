@@ -4,6 +4,8 @@ const stockRoutes = require("./stockRoutes");
 const chartRoutes = require("./chartRoutes");
 const portfolioRoutes = require("./portfolioRoutes");
 const authRoutes = require("./authRoutes")
+const userRoutes = require("./userRoutes")
+
 const admin = require("./firebase"); 
 
 
@@ -22,6 +24,7 @@ app.use("/stocks", stockRoutes);
 app.use("/chart", chartRoutes);
 app.use("/portfolio", portfolioRoutes);
 app.use("/auth",authRoutes)
+app.use("/user",userRoutes)
 
 
 
