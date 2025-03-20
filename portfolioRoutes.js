@@ -140,7 +140,6 @@ router.get("/get-portfolio", verifyToken, async (req, res) => {
     const db = await connectToMongo();
     const portfoliosCollection = db.collection("userPortfolios");
 
-    // Perform case-insensitive search for ticker OR company name (partial match)
     const portfolio = await portfoliosCollection.findOne({ _id: userId });
 
 
