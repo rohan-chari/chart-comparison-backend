@@ -98,4 +98,35 @@ router.post("/calculation", async (req, res) => {
   }
 });
 
+router.post("/save-timeframe", async (req, res) => {
+  const { startDate, endDate, userId } = req.body;
+
+  try {
+    const db = await connectToMongo();
+    const userPortfolioCollection = db.collection("userPortfolios");
+
+    const existingPortfolio = await userPortfolioCollection.findOne({ _id: userId });
+
+    if (existingPortfolio) {
+      // Update
+      await userPortfolioCollection.updateOne(
+        { _id: userId },
+        { $set: { startDate, endDate } }
+      );
+    } else {
+      // Create
+      await userPortfolioCollection.insertOne({
+        _id: userId,
+        startDate,
+        endDate
+      });
+    }
+
+    res.status(200).json({ message: "Timeframe saved successfully" });
+  } catch (err) {
+    console.error("Error saving timeframe:", err);
+    res.status(500).json({ error: `Error saving timeframe: ${err.message}` });
+  }
+});
+
 module.exports = router;
