@@ -2,6 +2,7 @@ const express = require("express");
 const router = express.Router();
 const connectToMongo = require("./connectToDb");
 const { getStockPrice } = require("./helperFunctions");
+const verifyToken = require("./middleware/authMiddleware");
 
 router.post("/calculation", async (req, res) => {
   const { portfolioStocks, start, end } = req.body;
@@ -98,13 +99,12 @@ router.post("/calculation", async (req, res) => {
   }
 });
 
-router.post("/save-timeframe", async (req, res) => {
+router.post("/save-timeframe", verifyToken, async (req, res) => {
   const { startDate, endDate, userId } = req.body;
 
   try {
     const db = await connectToMongo();
     const userPortfolioCollection = db.collection("userPortfolios");
-
     const existingPortfolio = await userPortfolioCollection.findOne({ _id: userId });
 
     if (existingPortfolio) {
@@ -128,5 +128,32 @@ router.post("/save-timeframe", async (req, res) => {
     res.status(500).json({ error: `Error saving timeframe: ${err.message}` });
   }
 });
+
+router.get("/get-portfolio", verifyToken, async (req, res) => {
+  const { userId } = req.query;
+
+  if (!userId) {
+    return res.status(400).json({ error: "User ID is required" });
+  }
+
+  try {
+    const db = await connectToMongo();
+    const portfoliosCollection = db.collection("userPortfolios");
+
+    // Perform case-insensitive search for ticker OR company name (partial match)
+    const portfolio = await portfoliosCollection.findOne({ _id: userId });
+
+
+    if (!portfolio) {
+      return res.status(404).json({ error: "Portfolio not found" });
+    }
+
+    res.json(portfolio);
+  } catch (err) {
+    console.error("Database query error:", err);
+    res.status(500).json({ error: "Internal Server Error" });
+  }
+});
+
 
 module.exports = router;
