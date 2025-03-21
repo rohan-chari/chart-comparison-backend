@@ -129,6 +129,34 @@ router.post("/save-timeframe", verifyToken, async (req, res) => {
   }
 });
 
+router.post("/save-stocks", verifyToken, async (req, res) => {
+  const { userId, token, portfolioStocks } = req.body;
+
+  try {
+    const db = await connectToMongo();
+    const userPortfolioCollection = db.collection("userPortfolios");
+    const existingPortfolio = await userPortfolioCollection.findOne({ _id: userId });
+    if (existingPortfolio) {
+      await userPortfolioCollection.updateOne(
+        { _id: userId },
+        { $set: { portfolioStocks } }
+      );
+    } else {
+      // Create
+      await userPortfolioCollection.insertOne({
+        _id: userId,
+        portfolioStocks
+      });
+    }
+
+    res.status(200).json({ message: "Stocks saved successfully" });
+  } catch (err) {
+    console.error("Error saving timeframe:", err);
+    res.status(500).json({ error: `Error saving timeframe: ${err.message}` });
+  }
+});
+
+
 router.get("/get-portfolio", verifyToken, async (req, res) => {
   const { userId } = req.query;
 
