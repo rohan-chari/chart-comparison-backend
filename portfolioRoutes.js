@@ -130,7 +130,7 @@ router.post("/save-timeframe", verifyToken, async (req, res) => {
 });
 
 router.post("/save-stocks", verifyToken, async (req, res) => {
-  const { userId, token, portfolioStocks } = req.body;
+  const { userId, portfolioStocks } = req.body;
 
   try {
     const db = await connectToMongo();
@@ -153,6 +153,33 @@ router.post("/save-stocks", verifyToken, async (req, res) => {
   } catch (err) {
     console.error("Error saving timeframe:", err);
     res.status(500).json({ error: `Error saving timeframe: ${err.message}` });
+  }
+});
+
+router.post("/save-comparison-stocks", verifyToken, async (req, res) => {
+  const { comparisonStocks, userId } = req.body;
+
+  try {
+    const db = await connectToMongo();
+    const userPortfolioCollection = db.collection("userPortfolios");
+    const existingPortfolio = await userPortfolioCollection.findOne({ _id: userId });
+    if (existingPortfolio) {
+      await userPortfolioCollection.updateOne(
+        { _id: userId },
+        { $set: { comparisonStocks } }
+      );
+    } else {
+      // Create
+      await userPortfolioCollection.insertOne({
+        _id: userId,
+        comparisonStocks
+      });
+    }
+
+    res.status(200).json({ message: "Comparison stocks saved successfully" });
+  } catch (err) {
+    console.error("Error saving timeframe:", err);
+    res.status(500).json({ error: `Error saving comparison stocks: ${err.message}` });
   }
 });
 

@@ -10,11 +10,14 @@ router.post("/historical", async (req, res) => {
 
   const chartStartDate = new Date(startYear, startMonth - 1, startDay);
   const chartEndDate = new Date(endYear, endMonth - 1, endDay);
-  for (const ticker of comparisonStocks) {
-    if (ticker.value) {
-      stocks.push(ticker.ticker);
+  if(comparisonStocks){
+    for (const ticker of comparisonStocks) {
+      if (ticker.value) {
+        stocks.push(ticker.ticker);
+      }
     }
   }
+
 
   try {
     const db = await connectToMongo();
