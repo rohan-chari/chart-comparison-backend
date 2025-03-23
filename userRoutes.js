@@ -22,4 +22,33 @@ router.get("/get-display-name/:userId", async (req, res) => {
     }
 });
 
+router.get("/get-user-by-username/:username", async (req, res) => {
+    try {
+      const db = await connectToMongo();
+      const userCollection = db.collection("users");
+  
+      const { username } = req.params;
+      if (!username) {
+        return res.status(400).json({ error: "Username not provided" });
+      }
+  
+      const users = await userCollection
+        .find({ displayName: { $regex: username, $options: 'i' } })
+        .project({ displayName: 1 }) 
+        .limit(50) 
+        .toArray();
+  
+      const formatted = users.map(user => ({
+        userId: user._id,
+        username: user.displayName
+      }));
+  
+      return res.json(formatted);
+    } catch (error) {
+      console.error("❌ Error fetching user display name:", error);
+      res.status(500).json({ error: "Server error" });
+    }
+});
+  
+
 module.exports = router;
