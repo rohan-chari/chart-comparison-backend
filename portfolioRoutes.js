@@ -101,12 +101,15 @@ router.post("/calculation", async (req, res) => {
 
     // followed users
     const followedUsersResults = [];
-    for (const user of followedUsersPortfolios) {
-      const metrics = await calculatePortfolioMetrics(user.portfolioStocks);
-      followedUsersResults.push({
-        userId: user._id,
-        ...metrics
-      });
+    if(followedUsersPortfolios){
+      for (const user of followedUsersPortfolios) {
+        const metrics = await calculatePortfolioMetrics(user.portfolioStocks);
+        followedUsersResults.push({
+          userId: user._id,
+          ...metrics
+        });
+      }
+  
     }
 
     res.json({
